@@ -89,24 +89,45 @@ threshold = 0.7  # Conservative: higher threshold reduces false positives
 # -------------------------
 # Whitelist of known safe domains
 # -------------------------
+# Base whitelist of known safe domains
 legitimate_domains = {
     'google.com', 'google.co.in', 'googleapis.com', 'gstatic.com', 'gvt2.com',
     'facebook.com', 'fbcdn.net', 'doubleclick.net', 'googlesyndication.com',
     'youtube.com', 'leetcode.com', 'takeuforward.org', 'perplexity.ai',
     'anthropic.com', 'stripe.com', 'intercom.io', 'cloudflare.com',
     'cursor.sh', 'codeium.com', 'razorpay.com', 'msn.com', 'microsoft.com',
-    'linkedin.com', 'signalhire.com', 'vimeo.com', 'sentry.io', 'datadoghq.com','claude.ai'
+    'linkedin.com', 'signalhire.com', 'vimeo.com', 'sentry.io', 'datadoghq.com', 'claude.ai',
+    # Microsoft telemetry domains
+    'self.events.data.microsoft.com', 'mobile.events.data.microsoft.com',
+    # Datadog domains
+    'browser-intake-datadoghq.com'
 }
+
+# Load additional whitelist domains from CSV if it exists
+try:
+    import os
+    if os.path.exists('whitelist_domains.csv'):
+        whitelist_df = pd.read_csv('whitelist_domains.csv')
+        if 'dns_domain_name' in whitelist_df.columns:
+            for domain in whitelist_df['dns_domain_name'].dropna():
+                domain = str(domain).lower().strip('.')
+                if domain:
+                    legitimate_domains.add(domain)
+except Exception:
+    pass  # If whitelist file doesn't exist or can't be read, use base list
 
 def is_legitimate_domain(qname):
     """Check if a domain is in whitelist or matches common patterns"""
     qname = str(qname).lower().strip('.')
     
+    # Direct match
     if qname in legitimate_domains:
         return True
     
+    # Check if domain ends with any whitelisted domain (handles subdomains)
     for domain in legitimate_domains:
-        if qname.endswith('.' + domain):
+        domain_clean = domain.strip('.')
+        if qname == domain_clean or qname.endswith('.' + domain_clean):
             return True
     
     # Check common safe prefixes
@@ -127,17 +148,17 @@ def is_legitimate_domain(qname):
 # -------------------------
 def label_row(qname, p, feat_row):
     q = str(qname)
+    
+    # WHITELIST CHECK FIRST - if domain is whitelisted, always mark as Safe
+    if is_legitimate_domain(qname):
+        return "Safe"
+    
     labels = split_labels(q)
     tld_uncommon = get_tld(q) in uncommon_tlds
     base64_present = has_base64_label(labels)
     tunneling_present = has_tunneling_keyword(labels)
     longest_label_digit_frac = digit_fraction_of_longest_label(labels)
     many_labels = len(labels) >= 5
-
-    if is_legitimate_domain(qname):
-        if base64_present or (tunneling_present and (feat_row["entropy_full"] >= 3.8 or many_labels)):
-            return "Suspicious"
-        return "Suspicious" if p >= 0.95 else "Safe"
 
     if base64_present:
         return "Suspicious"

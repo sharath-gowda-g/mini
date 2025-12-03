@@ -1,0 +1,5 @@
+dns_domain_name,label
+self.events.data.microsoft.com,Benign
+mobile.events.data.microsoft.com,Benign
+browser-intake-datadoghq.com,Benign
+

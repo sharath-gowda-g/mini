@@ -1,10 +1,6 @@
 """Train multiple models and save the best one (renamed from train_best_model.py)."""
-import os
 import sys
-import math
-import re
-import types
-from typing import Dict, Callable
+from typing import Dict
 
 import pandas as pd
 import numpy as np
@@ -21,13 +17,11 @@ except Exception:
     XGBClassifier = None
     _HAS_XGBOOST = False
 
-# File paths
-NORMAL_PATH = os.path.join("data", "normal_1500_queries.csv")
-SUSPICIOUS_PATH = os.path.join("data", "suspicious_1500_queries.csv")
 BEST_MODEL_PATH = "best_dns_model.pkl"
 
-# Import the feature extraction function from the shared module
+# Import the feature extraction function and data loader
 from features.dns_features import extract_features
+from data_loader import load_archive_datasets
 
 
 def train_and_evaluate(models: Dict[str, object], X_train, X_test, y_train, y_test):
@@ -68,28 +62,9 @@ def select_best(results: Dict[str, dict]):
 def main():
     print("Using feature-extraction from features/dns_features.py...")
 
-    # Load CSVs
-    print("Loading datasets...")
-    normal_df = pd.read_csv(NORMAL_PATH)
-    suspicious_df = pd.read_csv(SUSPICIOUS_PATH)
-
-    if "label" in normal_df.columns:
-        normal_df = normal_df[normal_df["label"] == 0]
-    else:
-        normal_df["label"] = 0
-
-    if "label" in suspicious_df.columns:
-        suspicious_df = suspicious_df[suspicious_df["label"] == 1]
-    else:
-        suspicious_df["label"] = 1
-
-    df = pd.concat([normal_df, suspicious_df], ignore_index=True)
-
-    if "qname" not in df.columns:
-        raise RuntimeError("Input CSVs must contain a 'qname' column")
-    df["qname"] = df["qname"].fillna("")
-
-    print(f"Total dataset size after merge: {len(df)}")
+    # Load datasets from archive
+    df = load_archive_datasets()
+    print(f"Total dataset size: {len(df)}")
 
     X = extract_features(df)
     y = df["label"]
@@ -103,8 +78,8 @@ def main():
             n_estimators=200, max_depth=15, min_samples_leaf=5,
             min_samples_split=10, random_state=42, class_weight="balanced", n_jobs=-1
         ),
-        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric="logloss") if _HAS_XGBOOST else None,
-        "LogisticRegression": LogisticRegression(solver="liblinear", class_weight="balanced", max_iter=1000)
+        "XGBoost": XGBClassifier(eval_metric="logloss", random_state=42, n_jobs=-1) if _HAS_XGBOOST else None,
+        "LogisticRegression": LogisticRegression(solver="liblinear", class_weight="balanced", max_iter=1000, random_state=42)
     }
 
     results = train_and_evaluate(models, X_train, X_test, y_train, y_test)

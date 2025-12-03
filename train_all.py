@@ -1,7 +1,6 @@
 """Train all candidate models and select the best one (renamed from train_all_models.py)."""
 from typing import List, Tuple
 
-import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
@@ -16,35 +15,13 @@ from models.train_lr_helper import train_logistic_regression
 # Model selection utility
 from models.choose_best_model import choose_best_model
 
-
-def load_datasets(normal_path: str, suspicious_path: str) -> pd.DataFrame:
-    normal_df = pd.read_csv(normal_path)
-    suspicious_df = pd.read_csv(suspicious_path)
-
-    if "label" in normal_df.columns:
-        normal_df = normal_df[normal_df["label"] == 0]
-    else:
-        normal_df["label"] = 0
-
-    if "label" in suspicious_df.columns:
-        suspicious_df = suspicious_df[suspicious_df["label"] == 1]
-    else:
-        suspicious_df["label"] = 1
-
-    df = pd.concat([normal_df, suspicious_df], ignore_index=True)
-    if "qname" not in df.columns:
-        raise RuntimeError("Input CSVs must contain a 'qname' column")
-    df["qname"] = df["qname"].fillna("")
-    return df
+# Shared data loader
+from data_loader import load_archive_datasets
 
 
 def main() -> None:
-    project_root = os.path.dirname(__file__)
-    normal_path = os.path.join(project_root, "data", "normal_1500_queries.csv")
-    suspicious_path = os.path.join(project_root, "data", "suspicious_1500_queries.csv")
-
-    print("Loading datasets...")
-    df = load_datasets(normal_path, suspicious_path)
+    print("Loading datasets from archive folder...")
+    df = load_archive_datasets()
     print(f"Total samples: {len(df)}")
 
     print("Extracting features...")

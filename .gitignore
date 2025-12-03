@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Model files (too large for git)
+*.pkl
+*.h5
+*.model
+*.joblib
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+db.sqlite3
+
+# Data files (large datasets)
+archive/
+data/*.csv
+dns_log.csv
+dns_predictions.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Test outputs
+test_*.py
+verify_*.py
+
+# Keep whitelist_domains.csv (small and useful)
+!whitelist_domains.csv
+
